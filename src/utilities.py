@@ -1,7 +1,8 @@
 # utilities.py
 
 import discord
-from discord.ext import commands, tasks
+from discord.ext import commands
+from custom.bouncer import bouncer_command
 from xp import XP_PER_LVL, xp_data, render_lvl_image, get_rank
 
 # ... (other imports and constants)
@@ -19,6 +20,8 @@ async def update_user_count(guild):
     await client.change_presence(activity=activity)
 
 # Other utility functions
+@bouncer_command
+@commands.command()
 async def send_giveaway(ctx, prize, winners, duration):
     embed = discord.Embed(title="🎉 **GIVEAWAY** 🎉", description=f"{prize}")
     embed.add_field(name="Winners", value=f"{winners}")
@@ -39,6 +42,7 @@ async def send_giveaway(ctx, prize, winners, duration):
     await ctx.send(f"Congratulations {', '.join(str(w) for w in winners)}!")
 
 # Rank command
+@bouncer_command
 @commands.command()
 async def rank(ctx, member: discord.Member = None):
     member = member or ctx.author
@@ -51,6 +55,33 @@ async def rank(ctx, member: discord.Member = None):
         await ctx.send(f"Hello, {member.mention}! Here's your rank!", file=discord.File(image_path))
         os.remove(image_path)
 
+@bouncer_command
 @commands.command()  
 async def giveaway(ctx, prize, winners, duration):
     await send_giveaway(ctx, prize, winners, duration)
+
+# Config commands
+@bouncer_command
+@commands.command()
+async def set_status(ctx, status_type, *, status_text):
+    types = {
+        'playing': discord.Game,
+        'streaming': discord.Streaming,
+        'listening': discord.ActivityType.listening,
+        'watching': discord.ActivityType.watching,
+    }
+    activity_type = types.get(status_type.lower())
+    
+    if activity_type:
+        activity = activity_type(name=status_text)
+        await client.change_presence(activity=activity)
+        await ctx.send(f"Status set to {status_type.capitalize()}: {status_text}")
+    else:
+        await ctx.send("Invalid status type. Use playing, streaming, listening, or watching.")
+
+@bouncer_command
+@commands.command()
+async def set_prefix(ctx, new_prefix):
+    # Assuming you have a global variable `bot` defined
+    bot.command_prefix = new_prefix
+    await ctx.send(f"Prefix set to: {new_prefix}")
